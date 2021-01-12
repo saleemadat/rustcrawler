@@ -1,0 +1,13 @@
+[package]
+name = "rustcrawler"
+version = "0.1.0"
+authors = ["saleem <saleemadat@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = "1.2.0"
+html5ever = "0.25.1"
+url = "2.1.0"
+surf = "2.0.0"
