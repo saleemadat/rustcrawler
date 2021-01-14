@@ -6,8 +6,11 @@ use std::borrow::Borrow;
 use url::{ParseError, Url};
 
 use async_std::task;
+
 use surf;
 
+
+type CrawlerResult = Result<String, String>;
 #[derive(Debug, Default)]
 struct LinkQueue {
     links: Vec<String>,
