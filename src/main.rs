@@ -6,11 +6,14 @@ use std::borrow::Borrow;
 use url::{ParseError, Url};
 
 use async_std::task;
-
 use surf;
 
 
-type CrawlerResult = Result<String, String>;
+
+type CrawlerResult = Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>;
+
+type BoxFuture = std::pin::Pin<Box<dyn std::future::Future<Output = CrawlerResult> + Send>>;
+
 #[derive(Debug, Default)]
 struct LinkQueue {
     links: Vec<String>,
@@ -53,19 +56,50 @@ pub fn get_links(url: &Url, page: String) -> Vec<Url> {
     let mut tokenizer = Tokenizer::new(&mut queue, TokenizerOpts::default());
     let mut buffer = BufferQueue::new();
     buffer.push_back(page.into());
-    let _ = tokenizer = tokenizer.feed(&mut buffer);
+    let _ = tokenizer.feed(&mut buffer);
 
     queue.links.iter().map(|link| match Url::parse(link) {
         Ok(url) => url,
         Err(ParseError::RelativeUrlWithoutBase) => domain_url.join(link).unwrap(),
         Err(_)=> panic!("Bad link found: {:?}", link)
     }).collect()
-
-
-
-
 }
 
+fn box_crawl(pages: vec<Url>, current: u8, max: u8)->BoxFuture{
+    Box::pin(crawl(pages, current, max))
+}
+
+
+async fn crawlpages(pages: Vec<Url>, current: u8, max: u8) -> CrawlerResult {
+
+    println!("current depth {}, max depth {}", current, max);
+
+    if current > max {
+        println!("reached max depth");
+        return Ok(());
+    }
+
+    let mut tasks = vec![];
+    println!("pages {:?}", pages);
+
+    for url in pages{
+        let task = task::spawn(async move{
+            println!(" getting {}", url);
+            let mut res = surf::get(&url).await?;
+            let body = res.body_string().await?;
+            let links = get_links(&url, body);
+            println!("Following: {:?}", links);
+            box_crawl(links, current + 1, max).await;
+        });
+        tasks.push(task);
+    }
+
+    for task in tasks.into_iter(){
+        task.await;
+    }
+    Ok(())
+
+}
 fn main() {
     print!("{}", "hello world");
 }
