@@ -87,7 +87,7 @@ async fn crawlpages(pages: Vec<Url>, current: u8, max: u8) -> CrawlerResult {
             println!(" getting {}", url);
             let mut res = surf::get(&url).await?;
             let body = res.body_string().await?;
-            let links = get_links(&url, body);
+            let links = get_links(&url, body).await;
             println!("Following: {:?}", links);
             box_crawl(links, current + 1, max).await;
         });
@@ -101,5 +101,8 @@ async fn crawlpages(pages: Vec<Url>, current: u8, max: u8) -> CrawlerResult {
 
 }
 fn main() {
-    print!("{}", "hello world");
+
+    task::block_on(async{
+        box_crawl(vec![Url::parse("https://www.rust-lang.org").unwrap()], 1 , 2).await;
+    })
 }
